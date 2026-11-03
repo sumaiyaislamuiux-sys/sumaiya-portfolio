@@ -61,17 +61,19 @@ function InteractivePortrait() {
     const left = leftRef.current;
     const right = rightRef.current;
     const head = headRef.current;
-    if (!stage || !left || !right || !head) return;
-    if (
-      !window.matchMedia("(pointer: fine)").matches ||
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches
-    )
-      return;
+    const eyeContainer = stage?.querySelector(".eye-layer");
+    if (!stage || !left || !right || !head || !eyeContainer) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
+    const supportsFinePointer = window.matchMedia("(pointer: fine)").matches;
     let frame = 0;
+    let activeTouchPointer = null;
+    let touchX = 0;
+    let touchY = 0;
     const hero = stage.closest(".hero-banner") || stage;
 
     function move(event) {
+      if (event.pointerType === "touch") return;
       const rect = stage.getBoundingClientRect();
       const x = Math.max(
         -1,
@@ -99,16 +101,94 @@ function InteractivePortrait() {
     }
 
     function reset() {
+      if (activeTouchPointer !== null) return;
       left.setAttribute("transform", "translate(0 0)");
       right.setAttribute("transform", "translate(0 0)");
       head.style.transform = "rotate(0deg)";
     }
 
-    hero.addEventListener("pointermove", move, { passive: true });
-    hero.addEventListener("pointerleave", reset);
+    function moveTouch(event) {
+      const rect = eyeContainer.getBoundingClientRect();
+      touchX = Math.max(
+        -1,
+        Math.min(
+          1,
+          (event.clientX - (rect.left + rect.width * 0.5)) /
+            (rect.width * 0.34),
+        ),
+      );
+      touchY = Math.max(
+        -1,
+        Math.min(
+          1,
+          (event.clientY - (rect.top + rect.height * 0.3)) /
+            (rect.height * 0.18),
+        ),
+      );
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        const transform = `translate(${touchX * 13} ${touchY * 7})`;
+        left.setAttribute("transform", transform);
+        right.setAttribute("transform", transform);
+        head.style.transform = `rotate(${touchX * 0.5}deg)`;
+      });
+    }
+
+    function finishTouch(event) {
+      if (event.pointerId !== activeTouchPointer) return;
+      activeTouchPointer = null;
+      cancelAnimationFrame(frame);
+
+      const startX = touchX;
+      const startY = touchY;
+      const startTime = performance.now();
+      const returnToCenter = (time) => {
+        const progress = Math.min(1, (time - startTime) / 220);
+        const eased = 1 - (1 - progress) ** 3;
+        touchX = startX * (1 - eased);
+        touchY = startY * (1 - eased);
+        const transform = `translate(${touchX * 13} ${touchY * 7})`;
+        left.setAttribute("transform", transform);
+        right.setAttribute("transform", transform);
+        head.style.transform = `rotate(${touchX * 0.5}deg)`;
+
+        if (progress < 1) {
+          frame = requestAnimationFrame(returnToCenter);
+        } else {
+          touchX = 0;
+          touchY = 0;
+        }
+      };
+      frame = requestAnimationFrame(returnToCenter);
+    }
+
+    function startTouch(event) {
+      if (event.pointerType !== "touch" || activeTouchPointer !== null) return;
+      activeTouchPointer = event.pointerId;
+      moveTouch(event);
+    }
+
+    function trackTouch(event) {
+      if (event.pointerId === activeTouchPointer) moveTouch(event);
+    }
+
+    if (supportsFinePointer) {
+      hero.addEventListener("pointermove", move, { passive: true });
+      hero.addEventListener("pointerleave", reset);
+    }
+    hero.addEventListener("pointerdown", startTouch, { passive: true });
+    window.addEventListener("pointermove", trackTouch, { passive: true });
+    window.addEventListener("pointerup", finishTouch, { passive: true });
+    window.addEventListener("pointercancel", finishTouch, { passive: true });
     return () => {
-      hero.removeEventListener("pointermove", move);
-      hero.removeEventListener("pointerleave", reset);
+      if (supportsFinePointer) {
+        hero.removeEventListener("pointermove", move);
+        hero.removeEventListener("pointerleave", reset);
+      }
+      hero.removeEventListener("pointerdown", startTouch);
+      window.removeEventListener("pointermove", trackTouch);
+      window.removeEventListener("pointerup", finishTouch);
+      window.removeEventListener("pointercancel", finishTouch);
       cancelAnimationFrame(frame);
     };
   }, []);
