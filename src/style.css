@@ -99,7 +99,7 @@ svg {
   align-items: center;
   gap: clamp(25px, 4vw, 60px);
   overflow: hidden;
-  background: #f7f5ef url("/portfolio-bg.png") center center / cover no-repeat;
+  background: #f7f5ef url("/portfolio-bg.webp") center center / cover no-repeat;
 }
 .hero-content {
   position: relative;

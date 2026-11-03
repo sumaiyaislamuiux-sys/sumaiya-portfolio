@@ -55,8 +55,15 @@ export default function Home() {
         <div className="hero-portrait-wrap">
           <div className="portrait-frame">
             <img
-              src="/images/avatar-eyes.png"
+              src="/avatar-eyes.webp"
+              srcSet="/avatar-eyes-640.webp 640w, /avatar-eyes.webp 1254w"
+              sizes="(max-width: 700px) 80vw, 520px"
               alt="Illustrated portrait of Sumaiya wearing a blue hijab"
+              width={1254}
+              height={1254}
+              loading="eager"
+              fetchPriority="high"
+              decoding="async"
               onError={(e) => {
                 e.currentTarget.style.display = "none";
                 e.currentTarget.parentElement.classList.add(

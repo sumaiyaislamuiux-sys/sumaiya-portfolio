@@ -13,9 +13,12 @@ export default function About() {
       <div className="about-feature botanical-bg">
         <img
           className="about-feature-portrait"
-          src="/me.jpg"
+          src="/me.webp"
           alt="Sumaiya, portrait"
+          width={1122}
+          height={1402}
           loading="lazy"
+          decoding="async"
         />
         <div className="about-monogram">
           SI<span>.</span>

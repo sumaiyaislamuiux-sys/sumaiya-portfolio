@@ -9,7 +9,7 @@ import {
   useLocation,
   useParams,
 } from "react-router-dom";
-import { profile, projects } from "./data.js";
+import { getImageDimensions, profile, projects } from "./data.js";
 import HiCharacter from "./components/HiCharacter.jsx";
 import CustomCursor from "./components/CustomCursor.jsx";
 import "./style.css";
@@ -119,8 +119,15 @@ function InteractivePortrait() {
       <div className="portrait-stage" ref={stageRef}>
         <img
           className="portrait-art"
-          src="/avatar-eyes.png"
+          src="/avatar-eyes.webp"
+          srcSet="/avatar-eyes-640.webp 640w, /avatar-eyes.webp 1254w"
+          sizes="(max-width: 700px) 80vw, 520px"
           alt="Illustrated portrait of Sumaiya wearing a blue hijab"
+          width={1254}
+          height={1254}
+          loading="eager"
+          fetchPriority="high"
+          decoding="async"
         />
         <svg className="eye-layer" viewBox="0 0 1240 1250" aria-hidden="true">
           <defs>
@@ -224,14 +231,44 @@ function Home() {
 }
 
 function ProjectCard({ project }) {
+  const imageRef = useRef(null);
+  const [imageVisible, setImageVisible] = useState(
+    () => typeof window === "undefined" || !("IntersectionObserver" in window),
+  );
+  const { width, height } = getImageDimensions(project.image);
+
+  useEffect(() => {
+    const image = imageRef.current;
+    if (!image || !("IntersectionObserver" in window)) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting) return;
+        setImageVisible(true);
+        observer.disconnect();
+      },
+      { rootMargin: "200px 0px" },
+    );
+    observer.observe(image);
+
+    return () => observer.disconnect();
+  }, []);
+
   return (
     <article className="project-card">
       <div className="project-thumbnail-frame">
         <img
+          ref={imageRef}
           className="project-thumbnail"
-          src={project.image}
+          src={imageVisible ? project.image : undefined}
+          srcSet={imageVisible ? project.imageSrcSet : undefined}
+          sizes="(max-width: 600px) 88vw, 42vw"
           alt={`${project.title} artwork`}
           loading="lazy"
+          fetchPriority="low"
+          decoding="async"
+          width={width}
+          height={height}
         />
         <span className="project-number">{project.number}</span>
       </div>
@@ -363,7 +400,14 @@ function About() {
             onPointerMove={handlePortraitPointerMove}
             onPointerLeave={resetPortraitTilt}
           >
-            <img src="/me.jpg" alt="Sumaiya, portrait" />
+            <img
+              src="/me.webp"
+              alt="Sumaiya, portrait"
+              width={1122}
+              height={1402}
+              loading="lazy"
+              decoding="async"
+            />
           </div>
           <figcaption className="about-reveal">A little about me.</figcaption>
         </figure>
@@ -505,7 +549,7 @@ function Skills() {
       description:
         "Develop visual identities through considered typography, logo design, and graphic composition.",
       visual: "identity",
-      image: "/bitebox.jpg",
+      image: "/bitebox.webp",
       link: "https://www.behance.net/sumaiyaislam501265",
       linkLabel: "Visit Sumaiya's Behance profile (opens in a new tab)",
       skills: [
@@ -523,7 +567,7 @@ function Skills() {
       description:
         "Shape clear digital journeys with user flows, wireframes, prototypes, and responsive interfaces.",
       visual: "interface",
-      image: "/finora.png",
+      image: "/finora.webp",
       link: "https://www.behance.net/gallery/244245817/Modern-Athletic-Landing-Page-UIUX-Design-Case-Study",
       linkLabel: "View UI/UX Design case study on Behance (opens in a new tab)",
       skills: [
@@ -542,7 +586,7 @@ function Skills() {
       description:
         "Bring interface ideas to life through hands-on practice with modern web technologies.",
       visual: "development",
-      image: "/webdevelopment.png",
+      image: "/webdevelopment.webp",
       link: "https://github.com/sumaiyaislamuiux-sys",
       linkLabel: "Visit Sumaiya's GitHub profile (opens in a new tab)",
       skills: ["HTML", "CSS", "JavaScript fundamentals", "React", "Bootstrap"],
@@ -555,7 +599,7 @@ function Skills() {
       description:
         "Communicate ideas through digital content, presentation design, and visual research.",
       visual: "creative",
-      image: "/creative-digital.png",
+      image: "/creative-digital.webp",
       link: "https://www.behance.net/sumaiyaislam501265",
       linkLabel: "Visit Sumaiya's Behance profile (opens in a new tab)",
       skills: [
@@ -633,6 +677,7 @@ function Skills() {
               linkLabel,
               skills: items,
             } = service;
+            const imageDimensions = image ? getImageDimensions(image) : null;
             const ServiceCard = link ? "a" : "article";
 
             return (
@@ -662,6 +707,9 @@ function Skills() {
                       src={image}
                       alt="Bitebox brand identity, packaging, and color palette"
                       loading="lazy"
+                      decoding="async"
+                      width={imageDimensions.width}
+                      height={imageDimensions.height}
                     />
                   ) : (
                     <>
@@ -741,6 +789,7 @@ function CareerTimelineEntry({ label, title, organization, date, children }) {
 
 function GalleryImage({ item, onMissing }) {
   const [failed, setFailed] = useState(false);
+  const dimensions = item.image ? getImageDimensions(item.image) : null;
 
   if (!item.image) {
     return (
@@ -762,6 +811,8 @@ function GalleryImage({ item, onMissing }) {
       alt={item.imageAlt}
       loading="lazy"
       decoding="async"
+      width={dimensions.width}
+      height={dimensions.height}
       onError={() => {
         setFailed(true);
         onMissing?.();
@@ -821,6 +872,7 @@ function GalleryCard({
 
 function RecognitionCard({ item, number, onPreview }) {
   const [imageAvailable, setImageAvailable] = useState(Boolean(item.image));
+  const dimensions = item.image ? getImageDimensions(item.image) : null;
 
   return (
     <article className="recognition-card">
@@ -838,6 +890,8 @@ function RecognitionCard({ item, number, onPreview }) {
               alt={item.imageAlt}
               loading="lazy"
               decoding="async"
+              width={dimensions.width}
+              height={dimensions.height}
               onError={() => setImageAvailable(false)}
             />
           ) : (
@@ -927,7 +981,13 @@ function ImagePreviewDialog({ image, onClose }) {
         <span aria-hidden="true">×</span>
       </button>
       <figure>
-        <img src={image.image} alt={image.imageAlt} />
+        <img
+          src={image.image}
+          alt={image.imageAlt}
+          width={getImageDimensions(image.image).width}
+          height={getImageDimensions(image.image).height}
+          decoding="async"
+        />
         <figcaption>{image.title}</figcaption>
       </figure>
     </dialog>
@@ -995,14 +1055,14 @@ function Experience() {
       title: "Office Secretary",
       date: "2025–2026",
       organization: "Eden Mohila College Debating Club",
-      image: "/emcdc%20secratary%20batch.jpg",
+      image: "/emcdc%20secratary%20batch.webp",
       imageAlt: "Office Secretary badge for the 2025–2026 term",
     },
     {
       title: "Education & Session Secretary",
       date: "2024–2025",
       organization: "Eden Mohila College Debating Club",
-      image: "/emcdc%20session%20secratary%20batch.jpg",
+      image: "/emcdc%20session%20secratary%20batch.webp",
       imageAlt: "Education and Session Secretary badge for the 2024–2025 term",
     },
   ];
@@ -1012,7 +1072,7 @@ function Experience() {
       title: "Professional Graphic Design",
       organization: "Creative IT Institute",
       date: "2024",
-      image: "/professional-graphic%20-design.jpg",
+      image: "/professional-graphic%20-design.webp",
       imageAlt: "Professional Graphic Design certificate from Creative IT Institute",
       placeholder: "Certificate image will be added later",
     },
@@ -1020,7 +1080,7 @@ function Experience() {
       title: "NSDA National Skills Certificate",
       organization: "Bangladesh",
       detail: "Graphics Design Level 3 · 360 hours",
-      image: "/nsda-graphic-design.jpg",
+      image: "/nsda-graphic-design.webp",
       imageAlt: "NSDA National Skills Certificate for Graphics Design Level 3",
       placeholder: "Certificate image will be added later",
     },
@@ -1028,7 +1088,7 @@ function Experience() {
       title: "Mastering UI/UX Design Course",
       organization: "Freelancing Factory Program, GP Academy",
       date: "February 2026",
-      image: "/uiux-designer-gp-academy.jpg",
+      image: "/uiux-designer-gp-academy.webp",
       imageAlt: "Mastering UI/UX Design Course certificate",
       placeholder: "Certificate image will be added later",
     },
@@ -1036,7 +1096,7 @@ function Experience() {
       title: "NSDA National Skills Certificate",
       organization: "Bangladesh",
       detail: "Web Design Level 3 · 360 hours",
-      image: "/nsda-web-design.jpg",
+      image: "/nsda-web-design.webp",
       imageAlt: "NSDA National Skills Certificate for Web Design Level 3",
       placeholder: "Certificate image will be added later",
     },
@@ -1044,7 +1104,7 @@ function Experience() {
       title: "Graphic Design Certificate",
       organization: "WorkWave, Futurenation, Grameenphone & UNDP",
       detail: "Co-hosted programme",
-      image: "/graphic-design-certificate.jpg",
+      image: "/graphic-design-certificate.webp",
       imageAlt: "Graphic Design Certificate from the co-hosted programme",
       placeholder: "Certificate image will be added later",
     },
@@ -1052,7 +1112,7 @@ function Experience() {
       title: "EAGLE Fellowship Mentorship Programme",
       organization: "Pcycle & Malala Fund",
       date: "2025",
-      image: "/eagle-certificate%20.jpg",
+      image: "/eagle-certificate%20.webp",
       imageAlt: "EAGLE Fellowship Mentorship Programme certificate",
       placeholder: "Certificate image will be added later",
     },
@@ -1060,7 +1120,7 @@ function Experience() {
       title: "Red Cross / Red Crescent Basic & First Aid Training Course",
       organization: "BDRCS, Dhaka City Unit",
       date: "May 2025",
-      image: "/bd-red-creascent.jpg",
+      image: "/bd-red-creascent.webp",
       imageAlt: "Red Cross and Red Crescent Basic and First Aid Training certificate",
       placeholder: "Certificate image will be added later",
     },
@@ -1068,7 +1128,7 @@ function Experience() {
       title: "Figma Design System Course",
       organization: "Grameenphone Academy",
       date: "March 2026",
-      image: "/certificate-figma-design-system.jpg",
+      image: "/certificate-figma-design-system.webp",
       imageAlt: "Figma Design System Course certificate from Grameenphone Academy",
       placeholder: "Certificate image will be added later",
     },
@@ -1081,7 +1141,7 @@ function Experience() {
       date: "2024",
       description:
         "Recognized for outstanding performance and initiative as a Campus Ambassador.",
-      image: "/campus-ambassador-trophy.jpg",
+      image: "/campus-ambassador-trophy.webp",
       imageAlt: "Most Dynamic Ambassador Award trophy",
       imageFit: "cover",
     },
@@ -1089,7 +1149,7 @@ function Experience() {
       title: "Probationary Social Worker Recognition",
       organization: "Bangladesh Medical University",
       date: "2025",
-      image: "/bangladesh-medical-university-certificate.jpg",
+      image: "/bangladesh-medical-university-certificate.webp",
       imageAlt: "Probationary Social Worker recognition from Bangladesh Medical University",
     },
     {
@@ -1097,7 +1157,7 @@ function Experience() {
       organization: "Creative IT Institute",
       description:
         "Recognition of my contribution and participation in the Campus Ambassador Programme.",
-      image: "/cit-certificate-of-experience.jpg",
+      image: "/cit-certificate-of-experience.webp",
       imageAlt: "Framed Certificate of Experience mockup from Creative IT Institute",
 
        
@@ -1106,7 +1166,7 @@ function Experience() {
       title: "Probationary Social Worker Recognition",
       organization: "BIRDEM General Hospital",
       date: "2026",
-      image: "/birdem-certificate.jpg",
+      image: "/birdem-certificate.webp",
       imageAlt: "Probationary Social Worker certificate from BIRDEM General Hospital",
     },
   ];
@@ -1302,6 +1362,9 @@ function ProjectDetail() {
         className="project-detail-image"
         src={project.detailImage || project.image}
         alt={`${project.title} artwork`}
+        width={getImageDimensions(project.detailImage || project.image).width}
+        height={getImageDimensions(project.detailImage || project.image).height}
+        decoding="async"
       />
       {project.status && <p className="project-status">{project.status}</p>}
       <Link className="button button-dark" to="/contact">

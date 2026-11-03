@@ -9,7 +9,14 @@ export default function HiCharacter({
       aria-hidden="true"
     >
       <span className="hi-character-art">
-        <img src="/navy-blue-girl.jpg" alt="" draggable="false" />
+        <img
+          src="/navy-blue-girl.webp"
+          alt=""
+          width={1536}
+          height={1024}
+          decoding="async"
+          draggable="false"
+        />
         <svg
           className="hi-character-wave"
           viewBox="0 0 1536 1024"
@@ -27,7 +34,7 @@ export default function HiCharacter({
           />
           <g className="hi-character-hand">
             <image
-              href="/navy-blue-girl.jpg"
+              href="/navy-blue-girl.webp"
               width="1536"
               height="1024"
               preserveAspectRatio="none"
